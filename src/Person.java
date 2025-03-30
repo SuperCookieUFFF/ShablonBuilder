@@ -1,3 +1,5 @@
+import java.util.OptionalInt;
+
 public class Person {
 
     private final String name;
@@ -22,11 +24,11 @@ public class Person {
         return surname;
     }
 
-    public int getAge() {
+    public OptionalInt getAge() {
         if (!ageKnown) {
-            throw new IllegalStateException("Возраст неизвестен.");
+            return OptionalInt.empty();
         }
-        return age;
+        return OptionalInt.of(age);
     }
 
     public boolean hasAge() {
@@ -54,14 +56,28 @@ public class Person {
     }
 
     public PersonBuilder newChildBuilder() {
-        return new PersonBuilder().setSurname(this.getSurname()).setAge(0) // Дети, как правило, не рождаются пожилыми
-                .setCity(this.getCity());
+        return new PersonBuilder()
+                .setSurname(this.getSurname())
+                .setAge(0)
+                .setCity(this.getCity())
+                .setName(null);
+    }
+
+    @Override
+    public String toString() {
+        return "Person{" +
+                "name='" + name + '\'' +
+                ", surname='" + surname + '\'' +
+                ", age=" + age +
+                ", ageKnown=" + ageKnown +
+                ", city='" + city + '\'' +
+                '}';
     }
 
     public static class PersonBuilder {
         private String name;
         private String surname;
-        private Integer age; // используем Integer для возможности null
+        private Integer age;
         private String city;
 
         public PersonBuilder setName(String name) {
@@ -95,10 +111,64 @@ public class Person {
                 throw new IllegalStateException("Необходимо указать фамилию.");
             }
 
-            boolean ageKnown = age != null;  // Возраст известен, если он был установлен билдером
+            boolean ageKnown = age != null;
             int builtAge = age != null ? age : 0;
 
             return new Person(name, surname, builtAge, ageKnown, city);
         }
+    }
+
+    public static void main(String[] args) {
+        Person mom = new Person.PersonBuilder()
+                .setName("Анна")
+                .setSurname("Волкова")
+                .setAge(31)
+                .setCity("Москва")
+                .build();
+
+        System.out.println("Mom's age (using OptionalInt): " + mom.getAge().orElse(0));
+        if(mom.getAge().isPresent()) {
+            System.out.println("Mom's actual age is: " + mom.getAge().getAsInt());
+        }
+
+
+        Person son = mom.newChildBuilder()
+                .setName("Антошка")
+                .build();
+        System.out.println("Son: " + son);
+
+        System.out.println("Son's age (using OptionalInt): " + son.getAge().orElse(0));
+        if(!son.getAge().isPresent()){
+            System.out.println("Son's age is unknown");
+        }
+
+
+
+        try {
+            new Person.PersonBuilder().build();
+        } catch (IllegalStateException e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+        try {
+            new Person.PersonBuilder().setAge(-100).build();
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+        Person personWithoutAge = new Person.PersonBuilder()
+                .setName("John")
+                .setSurname("Doe")
+                .setCity("New York")
+                .build();
+
+        System.out.println("Person without Age: " + personWithoutAge);
+        try {
+            personWithoutAge.happyBirthday();
+        } catch (IllegalStateException e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+
     }
 }
